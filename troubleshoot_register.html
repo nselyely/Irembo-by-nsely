@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register Troubleshooting</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .step { margin: 15px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        .info { background: #d1ecf1; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Register Function Troubleshooting</h1>
+    
+    <div class="step info">
+        <h3>Step 1: Test Backend Connection</h3>
+        <button onclick="testBackend()">Test Backend Server</button>
+        <div id="backendResult"></div>
+    </div>
+    
+    <div class="step info">
+        <h3>Step 2: Test Register Endpoint</h3>
+        <button onclick="testRegister()">Test Register API</button>
+        <div id="registerResult"></div>
+    </div>
+    
+    <div class="step info">
+        <h3>Step 3: Test Database Connection</h3>
+        <button onclick="testDatabase()">Test Database</button>
+        <div id="databaseResult"></div>
+    </div>
+    
+    <div class="step info">
+        <h3>Step 4: Simulate Registration</h3>
+        <button onclick="simulateRegistration()">Test Full Registration</button>
+        <div id="simulationResult"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000/api';
+        
+        function updateResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+        
+        async function testBackend() {
+            try {
+                const response = await fetch('http://localhost:5000/');
+                if (response.ok) {
+                    updateResult('backendResult', '✅ Backend server is running!', 'success');
+                } else {
+                    updateResult('backendResult', `❌ Backend responded with: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                updateResult('backendResult', `❌ Cannot connect to backend: ${error.message}<br>Make sure server is running with: node server.js`, 'error');
+            }
+        }
+        
+        async function testRegister() {
+            try {
+                const testData = {
+                    fullname: "Test User",
+                    email: "test@example.com", 
+                    username: "testuser",
+                    password: "testpass123",
+                    role: "user"
+                };
+                
+                const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    updateResult('registerResult', `✅ Register endpoint working!<br>Response: ${JSON.stringify(result, null, 2)}`, 'success');
+                } else {
+                    updateResult('registerResult', `❌ Register endpoint error: ${response.status}<br>Error: ${JSON.stringify(result, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                updateResult('registerResult', `❌ Register endpoint failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testDatabase() {
+            try {
+                // Test login to check database connection
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    updateResult('databaseResult', '✅ Database connection working (admin login successful)', 'success');
+                } else if (response.status === 401) {
+                    updateResult('databaseResult', '⚠️ Database connected but invalid credentials (check if default users exist)', 'info');
+                } else {
+                    updateResult('databaseResult', `❌ Database test failed: ${JSON.stringify(result, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                updateResult('databaseResult', `❌ Database test failed: ${error.message}<br>Check MySQL connection in .env file`, 'error');
+            }
+        }
+        
+        async function simulateRegistration() {
+            try {
+                const timestamp = new Date().getTime();
+                const testData = {
+                    fullname: "Debug User",
+                    email: `debug${timestamp}@example.com`,
+                    username: `debug${timestamp}`,
+                    password: "password123",
+                    role: "user"
+                };
+                
+                updateResult('simulationResult', `Attempting registration with:<br><pre>${JSON.stringify(testData, null, 2)}</pre>`, 'info');
+                
+                const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    updateResult('simulationResult', `✅ Registration successful!<br>Response: <pre>${JSON.stringify(result, null, 2)}</pre>`, 'success');
+                } else {
+                    updateResult('simulationResult', `❌ Registration failed:<br>Status: ${response.status}<br>Error: <pre>${JSON.stringify(result, null, 2)}</pre>`, 'error');
+                }
+            } catch (error) {
+                updateResult('simulationResult', `❌ Registration simulation failed: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

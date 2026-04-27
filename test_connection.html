@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>Irembo Backend Connection Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        const API_BASE_URL = 'http://localhost:5000/api';
+        const results = document.getElementById('results');
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            results.appendChild(div);
+        }
+        
+        async function testConnection() {
+            addResult('Testing backend connection...', 'info');
+            
+            try {
+                // Test basic server connection
+                const response = await fetch('http://localhost:5000/', { method: 'GET' });
+                if (response.ok) {
+                    addResult('✅ Backend server is running!', 'success');
+                } else {
+                    addResult('❌ Backend server responded with error', 'error');
+                    return;
+                }
+                
+                // Test API endpoint
+                try {
+                    const apiResponse = await fetch(`${API_BASE_URL}/services`, { 
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    
+                    if (apiResponse.status === 401) {
+                        addResult('✅ API endpoint accessible (authentication required)', 'success');
+                    } else if (apiResponse.ok) {
+                        addResult('✅ API endpoint working!', 'success');
+                    } else {
+                        addResult(`❌ API error: ${apiResponse.status}`, 'error');
+                    }
+                } catch (apiError) {
+                    addResult(`❌ API call failed: ${apiError.message}`, 'error');
+                }
+                
+                // Test authentication endpoint
+                try {
+                    const authResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: 'test', password: 'test' })
+                    });
+                    
+                    if (authResponse.status === 400 || authResponse.status === 401) {
+                        addResult('✅ Authentication endpoint working (invalid credentials expected)', 'success');
+                    } else {
+                        addResult(`❌ Unexpected auth response: ${authResponse.status}`, 'error');
+                    }
+                } catch (authError) {
+                    addResult(`❌ Auth endpoint failed: ${authError.message}`, 'error');
+                }
+                
+            } catch (error) {
+                addResult(`❌ Connection failed: ${error.message}`, 'error');
+                addResult('Make sure the backend server is running on port 5000', 'info');
+            }
+        }
+        
+        // Run test when page loads
+        window.onload = testConnection;
+    </script>
+</body>
+</html>
